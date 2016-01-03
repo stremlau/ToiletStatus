@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ToiletStatus</title>
+<style>
+html, body {
+	margin: 0;
+	padding: 0;
+	height: 100%;
+	width: 100%;
+}
+
+#toilette, #man {
+	height: 236px;
+	width: 140px;
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	margin-top: -118px;
+	margin-left: -70px;
+}
+
+#toilette {
+	background: url(toilette.png);
+	filter: hue-rotate(150deg);
+}
+
+#man {
+	background: url(man.png);
+}
+
+body {
+	background: radial-gradient(ellipse at center, rgb(240,249,255) 0%,rgb(145,214,255) 100%);
+}
+</style>
+</head>
+<body>
+<div id="man" style="margin-left: -310px;"></div>
+<div id="toilette"></div>
+</body>
+</html>

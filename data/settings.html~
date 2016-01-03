@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>ToiletStatus</title>
+	<style>
+	html, body {
+		margin: 0;
+		padding: 0;
+		height: 100%;
+		width: 100%;
+
+		font-family: Arial;
+	}
+
+	body {
+		background: radial-gradient(ellipse at center, rgb(240,249,255) 0%,rgb(145,214,255) 100%);
+	}
+
+	#container {
+		width: 800px;
+		margin: auto;
+	}
+
+	label {
+		display: inline-block;
+		width: 100px;
+	}
+	</style>
+</head>
+<body>
+	<div id="container">
+		<h2>Einstellungen</h2>
+		<p>Mit welchem Netzwerk soll sich das Ger&auml;t verbinden und unter welcher Domain erreichbar sein?</p>
+		<form id="settings">		
+			<label for="ssid">SSID:</label> <input name="ssid" id="ssid" disabled="disabled" /><br />
+			<label for="pass">Passwort:</label> <input name="pass" id="pass" disabled="disabled" /><br />
+			<label for="host">Domain:</label> <input name="host" id="host" disabled="disabled" />.local<br />
+			<label>&nbsp;</label> <input type="button" id="save" value="Speichern" />
+		</form>
+		<h2>Info</h2>
+		IP-Adresse: <span id="ip_local">...</span><br />
+		IP-Adresse: <span id="ip_ap">...</span><br />
+		Verbindungsstatus: <span id="status">...</span><br />
+		Kanal: <span id="channel">...</span><br />
+		Signalst&auml;rke: <span id="signal">...</span> dbm<br />
+		<input type="button" id="refresh_info" value="Aktualisieren" />
+	</div>
+	<script src="//code.jquery.com/jquery-1.11.3.min.js"></script>
+	<script>
+		var statusStr = ["idle", "SSID nicht gefunden", "scanned", "verbunden", "Verbinden fehlgeschlagen", "Verbindung verloren", "Verbindung getrennt"];
+
+		function readSettings() {
+			$.get("/settings", function(data) {
+				$('#ssid').val(data.ssid);
+				$('#pass').val(data.pass);
+				$('#host').val(data.host);
+			}, "json").fail(function() {
+				alert('Fehler beim Laden der Einstellungen!');
+			});
+		}
+		readSettings();
+
+		function readInfo(error) {
+			$.get("/info", function(data) {
+				$('#ip_local').text(data.ip_local);
+				$('#ip_ap').text(data.ip_ap);
+				$('#status').text(statusStr[data.status]);
+				$('#channel').text(data.channel);
+				$('#signal').text(data.signal);
+			}, "json").fail(function() {
+				if (error)
+					alert('Fehler beim Laden der Informationen!');
+			});
+		}
+		readInfo(true);
+
+		$('#refresh_info').click(function() {
+			readInfo(true);
+		});
+
+		$('#save').click(function() {
+			$.post("/settings", $( "#settings" ).serialize()).fail(function() {
+				alert('Fehler beim Speichern!');
+				readSettings();
+			});
+		});
+	</script>
+</body>
+</html>
