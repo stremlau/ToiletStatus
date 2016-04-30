@@ -15,7 +15,7 @@ String pass;
 String host;
 
 void readSettings() {
-  //TODO close file
+  // TODO close file
   ssid = SPIFFS.open("ssid", "r").readString();
   pass = SPIFFS.open("pass", "r").readString();
   host = SPIFFS.open("host", "r").readString();
@@ -40,24 +40,12 @@ void writeSettings() {
   WiFi.begin (ssid.c_str(), pass.c_str());
 }
 
-String inputField(String name, String value) {
-  String s = "<input name=\"";
-  s += name;
-  s += "\" value=\"";
-  s += value;
-  s += "\" \\>";
-  return s;
-}
-
 String ipToString(IPAddress addr) {
   char ip[24];
   sprintf(ip, "%d.%d.%d.%d", addr[0], addr[1], addr[2], addr[3]);
   return String(ip);
 }
 
-/* Just a little test message.  Go to http://192.168.4.1 in a web browser
- * connected to this access point to see it.
- */
 void handleSettings() {
   if (server.hasArg("ssid") && server.hasArg("pass") && server.hasArg("host"))  {
     ssid = server.arg("ssid");
@@ -82,6 +70,7 @@ void handleSettings() {
 }
 
 void handleInfo() {
+  // TODO use JsonBuffer
   String str = "{";
   str += "\"ip_ap\":\"" + ipToString(WiFi.softAPIP()) + "\",";
   str += "\"ip_local\":\"" + ipToString(WiFi.localIP()) + "\",";
@@ -92,9 +81,16 @@ void handleInfo() {
   server.send(200, "application/json", str);
 }
 
+void handleStatus() {
+  server.send(200, "text/html", String(digitalRead(2)));
+}
+
 void handleRoot() {
   File f = SPIFFS.open("/index.html", "r");
   server.send(200, "text/html", f.readString());
+
+  // disable config wifi
+  WiFi.mode(WIFI_STA);
 }
 
 void handleNotFound() {
@@ -113,49 +109,53 @@ void handleNotFound() {
 }
 
 void setup() {
-	delay(1000);
-	Serial.begin(115200);
+  delay(1000);
+  Serial.begin(115200);
+
+  pinMode(2, INPUT);
+
+  SPIFFS.begin();
+  readSettings();
   
   WiFi.mode(WIFI_AP_STA);
 
   WiFi.begin (ssid.c_str(), pass.c_str());
   Serial.println ( "" );
 
-  SPIFFS.begin();
-  readSettings();
+  Serial.println();
+  Serial.print("Configuring access point...");
+  WiFi.softAP("configMe");
 
-	Serial.println();
-	Serial.print("Configuring access point...");
-	/* You can remove the password parameter if you want the AP to be open. */
-	WiFi.softAP("teest", "penis");
+  IPAddress myIP = WiFi.softAPIP();
+  Serial.print("AP IP address: ");
+  Serial.println(myIP);
+  server.on("/", handleRoot);
+  server.on("/settings", handleSettings);
+  server.on("/info", handleInfo);
+  server.on("/status", handleStatus);
 
-	IPAddress myIP = WiFi.softAPIP();
-	Serial.print("AP IP address: ");
-	Serial.println(myIP);
-	server.on("/", handleRoot);
- server.on("/settings", handleSettings);
- server.on("/info", handleInfo);
- server.onNotFound(handleNotFound);
-	server.begin();
-	Serial.println("HTTP server started");
+  server.serveStatic("/", SPIFFS, "/","max-age=86400");
+  
+  server.onNotFound(handleNotFound);
+  server.begin();
+  Serial.println("HTTP server started");
 }
 
 void loop() {
   if ( WiFi.status() != WL_CONNECTED ) {
-    delay ( 500 );
-    Serial.print ( "." );
     mdns_started = false;
   }
   else {
     if (!mdns_started) {
-      mdns_started = mdns.begin ( "blubber", WiFi.localIP() );
-      if (mdns_started) Serial.println("mDNS started");
+      if (host.length() > 0) {
+        mdns_started = mdns.begin (host.c_str());
+        if (mdns_started) Serial.println("mDNS started");
+      }
     }
     else {
       mdns.update();
     }
   }
   
-	server.handleClient();
- 
+  server.handleClient();
 }
